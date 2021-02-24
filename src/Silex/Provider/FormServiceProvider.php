@@ -15,7 +15,7 @@ use Pimple\Container;
 use Pimple\ServiceProviderInterface;
 use Symfony\Component\Form\Extension\Csrf\CsrfExtension;
 use Symfony\Component\Form\Extension\HttpFoundation\HttpFoundationExtension;
-use Symfony\Component\Form\Extension\Validator\ValidatorExtension as FormValidatorExtension;
+use Symfony\Component\Form\Extension\Validator\ValidatorExtension;
 use Symfony\Component\Form\FormFactory;
 use Symfony\Component\Form\FormRegistry;
 use Symfony\Component\Form\ResolvedFormTypeFactory;
@@ -69,7 +69,7 @@ class FormServiceProvider implements ServiceProviderInterface
             }
 
             if (isset($app['validator'])) {
-                $extensions[] = new FormValidatorExtension($app['validator']);
+                $extensions[] = new ValidatorExtension($app['validator']);
             }
             $extensions[] = $app['form.extension.silex'];
 
@@ -77,7 +77,7 @@ class FormServiceProvider implements ServiceProviderInterface
         };
 
         $app['form.factory'] = function ($app) {
-            return new FormFactory($app['form.registry'], $app['form.resolved_type_factory']);
+            return new FormFactory($app['form.registry']);
         };
 
         $app['form.registry'] = function ($app) {

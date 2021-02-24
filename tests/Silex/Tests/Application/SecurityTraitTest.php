@@ -13,6 +13,8 @@ namespace Silex\Tests\Application;
 
 use PHPUnit\Framework\TestCase;
 use Silex\Provider\SecurityServiceProvider;
+use Symfony\Component\Security\Core\Encoder\PlaintextPasswordEncoder;
+use Symfony\Component\Security\Core\Exception\AuthenticationCredentialsNotFoundException;
 use Symfony\Component\Security\Core\User\User;
 use Symfony\Component\HttpFoundation\Request;
 
@@ -36,11 +38,11 @@ class SecurityTraitTest extends TestCase
         );
     }
 
-    /**
-     * @expectedException \Symfony\Component\Security\Core\Exception\AuthenticationCredentialsNotFoundException
-     */
     public function testIsGrantedWithoutTokenThrowsException()
     {
+        $this->expectException(AuthenticationCredentialsNotFoundException::class);
+        $this->expectExceptionMessage('The token storage contains no authentication token. One possible reason may be that there is no firewall configured for this URL.');
+
         $app = $this->createApplication();
         $app->get('/', function () { return 'foo'; });
         $app->handle(Request::create('/'));
@@ -52,8 +54,10 @@ class SecurityTraitTest extends TestCase
         $request = Request::create('/');
 
         $app = $this->createApplication([
-            'fabien' => ['ROLE_ADMIN', '$2y$15$lzUNsTegNXvZW3qtfucV0erYBcEqWVeyOmjolB7R1uodsAVJ95vvu'],
-            'monique' => ['ROLE_USER',  '$2y$15$lzUNsTegNXvZW3qtfucV0erYBcEqWVeyOmjolB7R1uodsAVJ95vvu'],
+//            'fabien' => ['ROLE_ADMIN', '$2y$15$lzUNsTegNXvZW3qtfucV0erYBcEqWVeyOmjolB7R1uodsAVJ95vvu'],
+            'fabien' => ['ROLE_ADMIN', 'foo'],
+//            'monique' => ['ROLE_USER', '$2y$15$lzUNsTegNXvZW3qtfucV0erYBcEqWVeyOmjolB7R1uodsAVJ95vvu'],
+            'monique' => ['ROLE_USER', 'foo'],
         ]);
         $app->get('/', function () { return 'foo'; });
 
@@ -61,6 +65,7 @@ class SecurityTraitTest extends TestCase
         $request->headers->set('PHP_AUTH_USER', 'monique');
         $request->headers->set('PHP_AUTH_PW', 'foo');
         $app->handle($request);
+
         $this->assertTrue($app->isGranted('ROLE_USER'));
         $this->assertFalse($app->isGranted('ROLE_ADMIN'));
 
@@ -68,6 +73,7 @@ class SecurityTraitTest extends TestCase
         $request->headers->set('PHP_AUTH_USER', 'fabien');
         $request->headers->set('PHP_AUTH_PW', 'foo');
         $app->handle($request);
+
         $this->assertFalse($app->isGranted('ROLE_USER'));
         $this->assertTrue($app->isGranted('ROLE_ADMIN'));
     }
@@ -82,6 +88,9 @@ class SecurityTraitTest extends TestCase
                     'users' => $users,
                 ],
             ],
+            'security.default_encoder' => function ($app) {
+                return new PlaintextPasswordEncoder();
+            },
         ]);
 
         return $app;

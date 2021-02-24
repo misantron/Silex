@@ -33,17 +33,15 @@ class RedirectableUrlMatcher extends BaseRedirectableUrlMatcher
             $url .= '?'.$query;
         }
 
-        if ($this->context->getHost()) {
-            if ($scheme) {
-                $port = '';
-                if ('http' === $scheme && 80 != $this->context->getHttpPort()) {
-                    $port = ':'.$this->context->getHttpPort();
-                } elseif ('https' === $scheme && 443 != $this->context->getHttpsPort()) {
-                    $port = ':'.$this->context->getHttpsPort();
-                }
-
-                $url = $scheme.'://'.$this->context->getHost().$port.$url;
+        if ($scheme !== null && $this->context->getHost()) {
+            $port = '';
+            if ('http' === $scheme && 80 != $this->context->getHttpPort()) {
+                $port = ':'.$this->context->getHttpPort();
+            } elseif ('https' === $scheme && 443 != $this->context->getHttpsPort()) {
+                $port = ':'.$this->context->getHttpsPort();
             }
+
+            $url = $scheme.'://'.$this->context->getHost().$port.$url;
         }
 
         return [

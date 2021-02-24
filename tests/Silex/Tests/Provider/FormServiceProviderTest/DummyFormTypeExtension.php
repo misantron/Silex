@@ -3,20 +3,18 @@
 namespace Silex\Tests\Provider\FormServiceProviderTest;
 
 use Symfony\Component\Form\AbstractTypeExtension;
-use Symfony\Component\Form\Extension\Core\Type\FormType;
+use Symfony\Component\Form\Extension\Core\Type\FileType;
 use Symfony\Component\OptionsResolver\OptionsResolver;
 
-class DisableCsrfExtension extends AbstractTypeExtension
+class DummyFormTypeExtension extends AbstractTypeExtension
 {
     public function configureOptions(OptionsResolver $resolver): void
     {
-        $resolver->setDefaults([
-            'csrf_protection' => false,
-        ]);
+        $resolver->setDefined(['image_path']);
     }
 
     public static function getExtendedTypes(): iterable
     {
-        return [FormType::class];
+        return [FileType::class];
     }
 }

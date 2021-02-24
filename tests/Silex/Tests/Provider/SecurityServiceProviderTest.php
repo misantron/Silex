@@ -12,14 +12,16 @@
 namespace Silex\Tests\Provider;
 
 use Silex\Application;
-use Silex\WebTestCase;
 use Silex\Provider\SecurityServiceProvider;
 use Silex\Provider\SessionServiceProvider;
 use Silex\Provider\ValidatorServiceProvider;
-use Symfony\Component\Security\Core\Authentication\Token\UsernamePasswordToken;
-use Symfony\Component\Security\Core\Exception\AuthenticationException;
-use Symfony\Component\HttpKernel\Client;
+use Silex\WebTestCase;
 use Symfony\Component\HttpFoundation\Request;
+use Symfony\Component\HttpKernel\HttpKernelBrowser;
+use Symfony\Component\HttpKernel\HttpKernelInterface;
+use Symfony\Component\Security\Core\Authentication\Token\UsernamePasswordToken;
+use Symfony\Component\Security\Core\Encoder\PlaintextPasswordEncoder;
+use Symfony\Component\Security\Core\Exception\AuthenticationException;
 
 /**
  * SecurityServiceProvider.
@@ -28,11 +30,11 @@ use Symfony\Component\HttpFoundation\Request;
  */
 class SecurityServiceProviderTest extends WebTestCase
 {
-    /**
-     * @expectedException \LogicException
-     */
     public function testWrongAuthenticationType()
     {
+        $this->expectException(\LogicException::class);
+        $this->expectExceptionMessage('The "foobar" authentication entry is not registered.');
+
         $app = new Application();
         $app->register(new SecurityServiceProvider(), [
             'security.firewalls' => [
@@ -50,13 +52,13 @@ class SecurityServiceProviderTest extends WebTestCase
     {
         $app = $this->createApplication('form');
 
-        $client = new Client($app);
+        $client = new HttpKernelBrowser($app);
 
         $client->request('get', '/');
         $this->assertEquals('ANONYMOUS', $client->getResponse()->getContent());
 
         $client->request('post', '/login_check', ['_username' => 'fabien', '_password' => 'bar']);
-        $this->assertContains('Bad credentials', $app['security.last_error']($client->getRequest()));
+        $this->assertStringContainsString('Bad credentials', $app['security.last_error']($client->getRequest()));
         // hack to re-close the session as the previous assertions re-opens it
         $client->getRequest()->getSession()->save();
 
@@ -98,7 +100,7 @@ class SecurityServiceProviderTest extends WebTestCase
     {
         $app = $this->createApplication('http');
 
-        $client = new Client($app);
+        $client = new HttpKernelBrowser($app);
 
         $client->request('get', '/');
         $this->assertEquals(401, $client->getResponse()->getStatusCode());
@@ -125,7 +127,7 @@ class SecurityServiceProviderTest extends WebTestCase
     {
         $app = $this->createApplication('guard');
 
-        $client = new Client($app);
+        $client = new HttpKernelBrowser($app);
 
         $client->request('get', '/');
         $this->assertEquals(401, $client->getResponse()->getStatusCode(), 'The entry point is configured');
@@ -170,7 +172,7 @@ class SecurityServiceProviderTest extends WebTestCase
         $app = $this->createApplication('form');
         $app['security.hide_user_not_found'] = false;
 
-        $client = new Client($app);
+        $client = new HttpKernelBrowser($app);
 
         $client->request('get', '/');
         $this->assertEquals('ANONYMOUS', $client->getResponse()->getContent());
@@ -268,10 +270,13 @@ class SecurityServiceProviderTest extends WebTestCase
                 'default' => [
                     'http' => true,
                     'users' => [
-                        'fabien' => ['ROLE_ADMIN', '$2y$15$lzUNsTegNXvZW3qtfucV0erYBcEqWVeyOmjolB7R1uodsAVJ95vvu'],
+                        'fabien' => ['ROLE_ADMIN', 'foo'],
                     ],
                 ],
             ],
+            'security.default_encoder' => function ($app) {
+                return new PlaintextPasswordEncoder();
+            },
         ]);
         $app->get('/', function () { return 'foo'; });
 
@@ -289,7 +294,7 @@ class SecurityServiceProviderTest extends WebTestCase
     public function testUserAsServiceString()
     {
         $users = [
-            'fabien' => ['ROLE_ADMIN', '$2y$15$lzUNsTegNXvZW3qtfucV0erYBcEqWVeyOmjolB7R1uodsAVJ95vvu'],
+            'fabien' => ['ROLE_ADMIN', 'foo'],
         ];
 
         $app = new Application();
@@ -300,6 +305,9 @@ class SecurityServiceProviderTest extends WebTestCase
                     'users' => 'my_user_provider',
                 ],
             ],
+            'security.default_encoder' => function ($app) {
+                return new PlaintextPasswordEncoder();
+            },
         ]);
         $app['my_user_provider'] = $app['security.user_provider.inmemory._proto']($users);
         $app->get('/', function () { return 'foo'; });
@@ -379,14 +387,17 @@ class SecurityServiceProviderTest extends WebTestCase
         ]);
     }
 
-    public function createApplication($authenticationMethod = 'form')
+    public function createApplication($authenticationMethod = 'form'): HttpKernelInterface
     {
-        $app = new Application();
+        $app = new Application(['debug' => true]);
         $app->register(new SessionServiceProvider());
 
-        $app = call_user_func([$this, 'add'.ucfirst($authenticationMethod).'Authentication'], $app);
+        $app = $this->{'add' . ucfirst($authenticationMethod) . 'Authentication'}($app);
 
         $app['session.test'] = true;
+        $app['security.default_encoder'] = static function ($app) {
+            return new PlaintextPasswordEncoder();
+        };
 
         return $app;
     }
@@ -407,8 +418,8 @@ class SecurityServiceProviderTest extends WebTestCase
                     'logout' => true,
                     'users' => [
                         // password is foo
-                        'fabien' => ['ROLE_USER', '$2y$15$lzUNsTegNXvZW3qtfucV0erYBcEqWVeyOmjolB7R1uodsAVJ95vvu'],
-                        'admin' => ['ROLE_ADMIN', '$2y$15$lzUNsTegNXvZW3qtfucV0erYBcEqWVeyOmjolB7R1uodsAVJ95vvu'],
+                        'fabien' => ['ROLE_USER', 'foo'],
+                        'admin' => ['ROLE_ADMIN', 'foo'],
                     ],
                 ],
             ],
@@ -458,8 +469,8 @@ class SecurityServiceProviderTest extends WebTestCase
                     'http' => true,
                     'users' => [
                         // password is foo
-                        'dennis' => ['ROLE_USER', '$2y$15$lzUNsTegNXvZW3qtfucV0erYBcEqWVeyOmjolB7R1uodsAVJ95vvu'],
-                        'admin' => ['ROLE_ADMIN', '$2y$15$lzUNsTegNXvZW3qtfucV0erYBcEqWVeyOmjolB7R1uodsAVJ95vvu'],
+                        'dennis' => ['ROLE_USER', 'foo'],
+                        'admin' => ['ROLE_ADMIN', 'foo'],
                     ],
                 ],
             ],
@@ -496,7 +507,7 @@ class SecurityServiceProviderTest extends WebTestCase
     private function addGuardAuthentication($app)
     {
         $app['app.authenticator.token'] = function ($app) {
-            return new SecurityServiceProviderTest\TokenAuthenticator($app);
+            return new SecurityServiceProviderTest\TokenAuthenticator();
         };
 
         $app->register(new SecurityServiceProvider(), [
@@ -519,9 +530,7 @@ class SecurityServiceProviderTest extends WebTestCase
         $app->get('/', function () use ($app) {
             $user = $app['security.token_storage']->getToken()->getUser();
 
-            $content = is_object($user) ? $user->getUsername() : 'ANONYMOUS';
-
-            return $content;
+            return is_object($user) ? $user->getUsername() : 'ANONYMOUS';
         })->bind('homepage');
 
         return $app;

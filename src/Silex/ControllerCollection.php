@@ -67,9 +67,9 @@ class ControllerCollection
     public function mount($prefix, $controllers)
     {
         if (is_callable($controllers)) {
-            $collection = $this->controllersFactory ? call_user_func($this->controllersFactory) : new static(new Route(), new RouteCollection());
+            $collection = $this->controllersFactory ? ($this->controllersFactory)() : new static(new Route(), new RouteCollection());
             $collection->defaultRoute = clone $this->defaultRoute;
-            call_user_func($controllers, $collection);
+            $controllers($collection);
             $controllers = $collection;
         } elseif (!$controllers instanceof self) {
             throw new \LogicException('The "mount" method takes either a "ControllerCollection" instance or callable.');
@@ -200,11 +200,7 @@ class ControllerCollection
      */
     public function flush()
     {
-        if (null === $this->routesFactory) {
-            $routes = new RouteCollection();
-        } else {
-            $routes = $this->routesFactory;
-        }
+        $routes = $this->routesFactory ?? new RouteCollection();
 
         return $this->doFlush('', $routes);
     }

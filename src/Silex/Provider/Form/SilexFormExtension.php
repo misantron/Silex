@@ -12,6 +12,7 @@
 namespace Silex\Provider\Form;
 
 use Pimple\Container;
+use Symfony\Component\Form\AbstractTypeExtension;
 use Symfony\Component\Form\Exception\InvalidArgumentException;
 use Symfony\Component\Form\FormExtensionInterface;
 use Symfony\Component\Form\FormTypeGuesserChain;
@@ -95,6 +96,9 @@ class SilexFormExtension implements FormExtensionInterface
         }
     }
 
+    /**
+     * @param AbstractTypeExtension[] $typeExtensions
+     */
     private function setTypeExtensions(array $typeExtensions)
     {
         $this->typeExtensions = [];
@@ -105,7 +109,10 @@ class SilexFormExtension implements FormExtensionInterface
                 }
                 $extension = $this->app[$extension];
             }
-            $this->typeExtensions[$extension->getExtendedType()][] = $extension;
+
+            foreach ($extension::getExtendedTypes() as $type) {
+                $this->typeExtensions[$type][] = $extension;
+            }
         }
     }
 

@@ -34,6 +34,7 @@ class TranslationServiceProviderTest extends TestCase
 
         $app->register(new LocaleServiceProvider());
         $app->register(new TranslationServiceProvider());
+
         $app['translator.domains'] = [
             'messages' => [
                 'en' => [
@@ -57,7 +58,7 @@ class TranslationServiceProviderTest extends TestCase
         return $app;
     }
 
-    public function transChoiceProvider()
+    public function transPluralProvider()
     {
         return [
             ['key2', 0, null, '0 apples'],
@@ -97,13 +98,13 @@ class TranslationServiceProviderTest extends TestCase
     }
 
     /**
-     * @dataProvider transChoiceProvider
+     * @dataProvider transPluralProvider
      */
-    public function testTransChoiceForDefaultLanguage($key, $number, $locale, $expected)
+    public function testTransPluralForDefaultLanguage($key, $number, $locale, $expected)
     {
         $app = $this->getPreparedApp();
 
-        $result = $app['translator']->transChoice($key, $number, ['%count%' => $number], null, $locale);
+        $result = $app['translator']->trans($key, ['%count%' => $number], null, $locale);
         $this->assertEquals($expected, $result);
     }
 

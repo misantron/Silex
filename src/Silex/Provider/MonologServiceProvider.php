@@ -40,10 +40,17 @@ class MonologServiceProvider implements ServiceProviderInterface, BootableProvid
 
         if ($bridge = class_exists('Symfony\Bridge\Monolog\Logger')) {
             if (isset($app['request_stack'])) {
-                $app['monolog.not_found_activation_strategy'] = function () use ($app) {
-                    $level = MonologServiceProvider::translateLevel($app['monolog.level']);
+                $app['monolog.error_activation_strategy'] = function ($app) {
+                    $level = self::translateLevel($app['monolog.level']);
 
-                    return new NotFoundActivationStrategy($app['request_stack'], ['^/'], $level);
+                    return new Handler\FingersCrossed\ErrorLevelActivationStrategy($level);
+                };
+                $app['monolog.not_found_activation_strategy'] = function ($app) {
+                    return new NotFoundActivationStrategy(
+                        $app['request_stack'],
+                        ['^/'],
+                        $app['monolog.error_activation_strategy']
+                    );
                 };
             }
         }
@@ -72,7 +79,7 @@ class MonologServiceProvider implements ServiceProviderInterface, BootableProvid
         };
 
         $app['monolog.handler'] = $defaultHandler = function () use ($app) {
-            $level = MonologServiceProvider::translateLevel($app['monolog.level']);
+            $level = self::translateLevel($app['monolog.level']);
 
             $handler = new Handler\StreamHandler($app['monolog.logfile'], $level, $app['monolog.bubble'], $app['monolog.permission']);
             $handler->setFormatter($app['monolog.formatter']);

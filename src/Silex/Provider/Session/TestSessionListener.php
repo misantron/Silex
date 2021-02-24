@@ -12,28 +12,18 @@
 namespace Silex\Provider\Session;
 
 use Pimple\Container;
-use Symfony\Component\HttpKernel\EventListener\TestSessionListener as BaseTestSessionListener;
 
 /**
  * Simulates sessions for testing purpose.
  *
  * @author Fabien Potencier <fabien@symfony.com>
  */
-class TestSessionListener extends BaseTestSessionListener
+class TestSessionListener extends \Symfony\Component\HttpKernel\EventListener\TestSessionListener
 {
-    private $app;
-
     public function __construct(Container $app)
     {
-        $this->app = $app;
-    }
+        $container = new \Pimple\Psr11\Container($app);
 
-    protected function getSession()
-    {
-        if (!isset($this->app['session'])) {
-            return;
-        }
-
-        return $this->app['session'];
+        parent::__construct($container);
     }
 }

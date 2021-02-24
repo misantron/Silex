@@ -17,6 +17,7 @@ use Monolog\Handler\TestHandler;
 use Monolog\Logger;
 use Silex\Application;
 use Silex\Provider\MonologServiceProvider;
+use Silex\Provider\SecurityServiceProvider;
 use Symfony\Component\HttpFoundation\RedirectResponse;
 use Symfony\Component\HttpFoundation\Request;
 use Symfony\Component\HttpKernel\Exception\NotFoundHttpException;
@@ -30,13 +31,13 @@ class MonologServiceProviderTest extends TestCase
 {
     private $currErrorHandler;
 
-    protected function setUp()
+    protected function setUp(): void
     {
         $this->currErrorHandler = set_error_handler('var_dump');
         restore_error_handler();
     }
 
-    protected function tearDown()
+    protected function tearDown(): void
     {
         set_error_handler($this->currErrorHandler);
     }
@@ -58,7 +59,7 @@ class MonologServiceProviderTest extends TestCase
         $this->assertTrue($app['monolog.handler']->hasDebug('< 200'));
 
         $records = $app['monolog.handler']->getRecords();
-        $this->assertContains('Matched route "{route}".', $records[0]['message']);
+        $this->assertStringContainsString('Matched route "{route}".', $records[0]['message']);
         $this->assertSame('GET_foo', $records[0]['context']['route']);
     }
 
@@ -67,7 +68,7 @@ class MonologServiceProviderTest extends TestCase
         $app = $this->getApplication();
 
         $app->get('/log', function () use ($app) {
-            $app['monolog']->addDebug('logging a message');
+            $app['monolog']->debug('logging a message');
         });
 
         $this->assertFalse($app['monolog.handler']->hasDebugRecords());
@@ -146,7 +147,7 @@ class MonologServiceProviderTest extends TestCase
         $app = $this->getApplication();
         $app['monolog.level'] = Logger::ERROR;
 
-        $app->register(new \Silex\Provider\SecurityServiceProvider(), [
+        $app->register(new SecurityServiceProvider(), [
             'security.firewalls' => [
                 'admin' => [
                     'pattern' => '^/admin',
@@ -174,12 +175,11 @@ class MonologServiceProviderTest extends TestCase
         $this->assertSame(Logger::INFO, $app['monolog.handler']->getLevel());
     }
 
-    /**
-     * @expectedException \InvalidArgumentException
-     * @expectedExceptionMessage Provided logging level 'foo' does not exist. Must be a valid monolog logging level.
-     */
     public function testNonExistentStringErrorLevel()
     {
+        $this->expectException(\InvalidArgumentException::class);
+        $this->expectExceptionMessage('Level "foo" is not defined, use one of: 100, 200, 250, 300, 400, 500, 550, 600');
+
         $app = $this->getApplication();
         $app['monolog.level'] = 'foo';
 

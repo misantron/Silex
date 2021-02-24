@@ -28,7 +28,7 @@ trait TwigTrait
      *
      * @param string   $view       The view name
      * @param array    $parameters An array of parameters to pass to the view
-     * @param Response $response   A Response instance
+     * @param Response|null $response   A Response instance
      *
      * @return Response A Response instance
      */

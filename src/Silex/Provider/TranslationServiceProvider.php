@@ -13,13 +13,13 @@ namespace Silex\Provider;
 
 use Pimple\Container;
 use Pimple\ServiceProviderInterface;
-use Symfony\Component\Translation\Translator;
+use Silex\Api\EventListenerProviderInterface;
+use Symfony\Component\EventDispatcher\EventDispatcherInterface;
+use Symfony\Component\HttpKernel\EventListener\LocaleAwareListener;
 use Symfony\Component\Translation\Formatter\MessageFormatter;
 use Symfony\Component\Translation\Loader\ArrayLoader;
 use Symfony\Component\Translation\Loader\XliffFileLoader;
-use Symfony\Component\EventDispatcher\EventDispatcherInterface;
-use Symfony\Component\HttpKernel\EventListener\TranslatorListener;
-use Silex\Api\EventListenerProviderInterface;
+use Symfony\Component\Translation\Translator;
 
 /**
  * Symfony Translation component Provider.
@@ -72,7 +72,7 @@ class TranslationServiceProvider implements ServiceProviderInterface, EventListe
 
         if (isset($app['request_stack'])) {
             $app['translator.listener'] = function ($app) {
-                return new TranslatorListener($app['translator'], $app['request_stack']);
+                return new LocaleAwareListener([$app['translator']], $app['request_stack']);
             };
         }
 

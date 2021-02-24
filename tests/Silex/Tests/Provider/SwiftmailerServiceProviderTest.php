@@ -56,7 +56,7 @@ class SwiftmailerServiceProviderTest extends TestCase
         };
 
         $app->get('/', function () use ($app) {
-            $app['mailer']->send(\Swift_Message::newInstance());
+            $app['mailer']->send(new \Swift_Message());
         });
 
         $this->assertCount(0, $app['swiftmailer.spool']->getMessages());
@@ -104,12 +104,12 @@ class SwiftmailerServiceProviderTest extends TestCase
 
         $app['swiftmailer.sender_address'] = 'foo@example.com';
 
-        $app['mailer']->send(\Swift_Message::newInstance());
+        $app['mailer']->send(new \Swift_Message());
 
         $messages = $app['swiftmailer.spool']->getMessages();
         $this->assertCount(1, $messages);
 
-        list($message) = $messages;
+        [$message] = $messages;
         $this->assertEquals('foo@example.com', $message->getReturnPath());
     }
 
