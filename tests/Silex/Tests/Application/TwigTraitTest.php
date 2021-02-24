@@ -15,6 +15,7 @@ use PHPUnit\Framework\TestCase;
 use Silex\Provider\TwigServiceProvider;
 use Symfony\Component\HttpFoundation\Response;
 use Symfony\Component\HttpFoundation\StreamedResponse;
+use Twig\Environment;
 
 /**
  * @author Fabien Potencier <fabien@symfony.com>
@@ -25,11 +26,13 @@ class TwigTraitTest extends TestCase
     {
         $app = $this->createApplication();
 
-        $app['twig'] = $mailer = $this->getMockBuilder('Twig_Environment')->disableOriginalConstructor()->getMock();
+        $app['twig'] = $mailer = $this->getMockBuilder(Environment::class)
+            ->disableOriginalConstructor()
+            ->getMock();
         $mailer->expects($this->once())->method('render')->will($this->returnValue('foo'));
 
         $response = $app->render('view');
-        $this->assertEquals('Symfony\Component\HttpFoundation\Response', get_class($response));
+        $this->assertInstanceOf('Symfony\Component\HttpFoundation\Response', $response);
         $this->assertEquals('foo', $response->getContent());
     }
 
@@ -37,7 +40,9 @@ class TwigTraitTest extends TestCase
     {
         $app = $this->createApplication();
 
-        $app['twig'] = $mailer = $this->getMockBuilder('Twig_Environment')->disableOriginalConstructor()->getMock();
+        $app['twig'] = $mailer = $this->getMockBuilder(Environment::class)
+            ->disableOriginalConstructor()
+            ->getMock();
         $mailer->expects($this->once())->method('render')->will($this->returnValue('foo'));
 
         $response = $app->render('view', [], new Response('', 404));
@@ -48,11 +53,15 @@ class TwigTraitTest extends TestCase
     {
         $app = $this->createApplication();
 
-        $app['twig'] = $mailer = $this->getMockBuilder('Twig_Environment')->disableOriginalConstructor()->getMock();
-        $mailer->expects($this->once())->method('display')->will($this->returnCallback(function () { echo 'foo'; }));
+        $app['twig'] = $mailer = $this->getMockBuilder(Environment::class)
+            ->disableOriginalConstructor()
+            ->getMock();
+        $mailer->expects($this->once())->method('display')->will($this->returnCallback(function () {
+            echo 'foo';
+        }));
 
         $response = $app->render('view', [], new StreamedResponse());
-        $this->assertEquals('Symfony\Component\HttpFoundation\StreamedResponse', get_class($response));
+        $this->assertInstanceOf('Symfony\Component\HttpFoundation\StreamedResponse', $response);
 
         ob_start();
         $response->send();
@@ -63,7 +72,9 @@ class TwigTraitTest extends TestCase
     {
         $app = $this->createApplication();
 
-        $app['twig'] = $mailer = $this->getMockBuilder('Twig_Environment')->disableOriginalConstructor()->getMock();
+        $app['twig'] = $mailer = $this->getMockBuilder(Environment::class)
+            ->disableOriginalConstructor()
+            ->getMock();
         $mailer->expects($this->once())->method('render');
 
         $app->renderView('view');

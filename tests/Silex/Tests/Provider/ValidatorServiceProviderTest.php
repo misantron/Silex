@@ -35,6 +35,9 @@ class ValidatorServiceProviderTest extends TestCase
         $app->register(new ValidatorServiceProvider());
         $app->register(new FormServiceProvider());
 
+        $this->assertArrayHasKey('validator', $app);
+        $this->assertInstanceOf(ValidatorInterface::class, $app['validator']);
+
         return $app;
     }
 
@@ -52,14 +55,6 @@ class ValidatorServiceProviderTest extends TestCase
             ],
         ]);
 
-        return $app;
-    }
-
-    /**
-     * @depends testRegisterWithCustomValidators
-     */
-    public function testConstraintValidatorFactory($app)
-    {
         $this->assertInstanceOf('Silex\Provider\Validator\ConstraintValidatorFactory', $app['validator.validator_factory']);
 
         $validator = $app['validator.validator_factory']->getInstance(new Custom());
@@ -74,14 +69,6 @@ class ValidatorServiceProviderTest extends TestCase
         $constraint = new Assert\Expression('true');
         $validator = $app['validator.validator_factory']->getInstance($constraint);
         $this->assertInstanceOf('Symfony\Component\Validator\Constraints\ExpressionValidator', $validator);
-    }
-
-    /**
-     * @depends testRegister
-     */
-    public function testValidatorServiceIsAValidator($app)
-    {
-        $this->assertTrue($app['validator'] instanceof ValidatorInterface);
     }
 
     /**
@@ -201,6 +188,6 @@ class ValidatorServiceProviderTest extends TestCase
         $app->register(new ValidatorServiceProvider());
         $app->register(new TranslationServiceProvider());
 
-        $this->assertInternalType('array', $app['translator.resources']);
+        $this->assertIsArray($app['translator.resources']);
     }
 }

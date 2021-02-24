@@ -11,11 +11,11 @@
 
 namespace Silex;
 
-use Symfony\Component\Debug\ExceptionHandler as DebugExceptionHandler;
-use Symfony\Component\Debug\Exception\FlattenException;
+use Symfony\Component\ErrorHandler\Exception\FlattenException;
 use Symfony\Component\EventDispatcher\EventSubscriberInterface;
 use Symfony\Component\HttpFoundation\Response;
-use Symfony\Component\HttpKernel\Event\GetResponseForExceptionEvent;
+use Symfony\Component\HttpKernel\Event\ExceptionEvent;
+use Symfony\Component\HttpKernel\Exception\HttpExceptionInterface;
 use Symfony\Component\HttpKernel\KernelEvents;
 
 /**
@@ -25,25 +25,49 @@ use Symfony\Component\HttpKernel\KernelEvents;
  */
 class ExceptionHandler implements EventSubscriberInterface
 {
-    protected $debug;
+    private $debug;
+    private $charset;
 
-    public function __construct($debug)
+    public function __construct($debug, $charset = 'UTF-8')
     {
         $this->debug = $debug;
+        $this->charset = $charset;
     }
 
-    public function onSilexError(GetResponseForExceptionEvent $event)
+    public function onKernelException(ExceptionEvent $event)
     {
-        $handler = new DebugExceptionHandler($this->debug);
+        $exception = $event->getThrowable();
 
-        $exception = $event->getException();
-        if (!$exception instanceof FlattenException) {
-            $exception = FlattenException::create($exception);
+        $response = new Response();
+        $response->setStatusCode(Response::HTTP_INTERNAL_SERVER_ERROR);
+
+        if ($exception instanceof HttpExceptionInterface) {
+            $response->setStatusCode($exception->getStatusCode());
+            $response->headers->replace($exception->getHeaders());
         }
 
-        $response = Response::create($handler->getHtml($exception), $exception->getStatusCode(), $exception->getHeaders())->setCharset(ini_get('default_charset'));
+        if (!$exception instanceof FlattenException) {
+            $exception = FlattenException::createFromThrowable($exception);
+        }
+
+        $message = $this->escapeContent($exception->getMessage());
+
+        if (!$this->debug) {
+            if ($exception->getStatusCode() === Response::HTTP_NOT_FOUND) {
+                $message = 'Sorry, the page you are looking for could not be found.';
+            } else {
+                $message = 'Whoops, looks like something went wrong.';
+            }
+        }
+
+        $response->setContent($message);
 
         $event->setResponse($response);
+    }
+
+    private function escapeContent(string $str): string
+    {
+        return htmlspecialchars($str, \ENT_COMPAT | \ENT_SUBSTITUTE, $this->charset);
     }
 
     /**
@@ -51,6 +75,6 @@ class ExceptionHandler implements EventSubscriberInterface
      */
     public static function getSubscribedEvents()
     {
-        return [KernelEvents::EXCEPTION => ['onSilexError', -255]];
+        return [KernelEvents::EXCEPTION => ['onKernelException', -255]];
     }
 }

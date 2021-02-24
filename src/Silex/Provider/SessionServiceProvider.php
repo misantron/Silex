@@ -57,7 +57,7 @@ class SessionServiceProvider implements ServiceProviderInterface, EventListenerP
         };
 
         $app['session.listener'] = function ($app) {
-            return new SessionListener($app);
+            return new SessionListener($app, $app['debug']);
         };
 
         $app['session.storage.test'] = function () {

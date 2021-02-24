@@ -15,7 +15,7 @@ use Pimple\Container;
 
 class CallbackResolver
 {
-    const SERVICE_PATTERN = "/[A-Za-z0-9\._\-]+:[a-zA-Z_\x7f-\xff][a-zA-Z0-9_\x7f-\xff]*/";
+    private const SERVICE_PATTERN = "/[A-Za-z0-9\._\-]+:[a-zA-Z_\x7f-\xff][a-zA-Z0-9_\x7f-\xff]*/";
 
     private $app;
 
@@ -48,7 +48,7 @@ class CallbackResolver
     public function convertCallback($name)
     {
         if (preg_match(static::SERVICE_PATTERN, $name)) {
-            list($service, $method) = explode(':', $name, 2);
+            [$service, $method] = explode(':', $name, 2);
             $callback = [$this->app[$service], $method];
         } else {
             $service = $name;

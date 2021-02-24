@@ -173,12 +173,11 @@ class ControllerCollectionTest extends TestCase
         });
     }
 
-    /**
-     * @expectedException \LogicException
-     * @expectedExceptionMessage The "mount" method takes either a "ControllerCollection" instance or callable.
-     */
     public function testMountCallableException()
     {
+        $this->expectException(\LogicException::class);
+        $this->expectExceptionMessage('The "mount" method takes either a "ControllerCollection" instance or callable.');
+
         $controllers = new ControllerCollection(new Route());
         $controllers->mount('/prefix', '');
     }
@@ -285,11 +284,11 @@ class ControllerCollectionTest extends TestCase
         $this->assertEquals('foo', $route->foo);
     }
 
-    /**
-     * @expectedException \BadMethodCallException
-     */
     public function testRouteMethodDoesNotExist()
     {
+        $this->expectException(\BadMethodCallException::class);
+        $this->expectExceptionMessage('Method "Silex\Tests\MyRoute1::bar" does not exist.');
+
         $route = new MyRoute1();
 
         $controller = new ControllerCollection($route);

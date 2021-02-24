@@ -39,9 +39,9 @@ class ConstraintValidatorFactory extends BaseConstraintValidatorFactory
      * @param Container $container    DI container
      * @param array     $serviceNames Validator service names
      */
-    public function __construct(Container $container, array $serviceNames = [], $propertyAccessor = null)
+    public function __construct(Container $container, array $serviceNames = [])
     {
-        parent::__construct($propertyAccessor);
+        parent::__construct();
 
         $this->container = $container;
         $this->serviceNames = $serviceNames;

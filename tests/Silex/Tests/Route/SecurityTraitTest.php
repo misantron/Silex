@@ -15,6 +15,7 @@ use PHPUnit\Framework\TestCase;
 use Silex\Application;
 use Silex\Provider\SecurityServiceProvider;
 use Symfony\Component\HttpFoundation\Request;
+use Symfony\Component\Security\Core\Encoder\PlaintextPasswordEncoder;
 
 /**
  * SecurityTrait test cases.
@@ -69,16 +70,19 @@ class SecurityTraitTest extends TestCase
     private function createApplication()
     {
         $app = new Application();
-        $app['route_class'] = 'Silex\Tests\Route\SecurityRoute';
+        $app['route_class'] = SecurityRoute::class;
         $app->register(new SecurityServiceProvider(), [
             'security.firewalls' => [
                 'default' => [
                     'http' => true,
                     'users' => [
-                        'fabien' => ['ROLE_ADMIN', '$2y$15$lzUNsTegNXvZW3qtfucV0erYBcEqWVeyOmjolB7R1uodsAVJ95vvu'],
+                        'fabien' => ['ROLE_ADMIN', 'foo'],
                     ],
                 ],
             ],
+            'security.default_encoder' => function ($app) {
+                return new PlaintextPasswordEncoder();
+            },
         ]);
 
         return $app;

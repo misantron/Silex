@@ -16,7 +16,9 @@ use Silex\WebTestCase;
 use Silex\Provider\RememberMeServiceProvider;
 use Silex\Provider\SecurityServiceProvider;
 use Silex\Provider\SessionServiceProvider;
-use Symfony\Component\HttpKernel\Client;
+use Symfony\Component\HttpKernel\HttpKernelBrowser;
+use Symfony\Component\HttpKernel\HttpKernelInterface;
+use Symfony\Component\Security\Core\Encoder\PlaintextPasswordEncoder;
 use Symfony\Component\Security\Http\SecurityEvents;
 
 /**
@@ -33,7 +35,7 @@ class RememberMeServiceProviderTest extends WebTestCase
         $interactiveLogin = new InteractiveLoginTriggered();
         $app->on(SecurityEvents::INTERACTIVE_LOGIN, [$interactiveLogin, 'onInteractiveLogin']);
 
-        $client = new Client($app);
+        $client = new HttpKernelBrowser($app);
 
         $client->request('get', '/');
         $this->assertFalse($interactiveLogin->triggered, 'The interactive login has not been triggered yet');
@@ -43,7 +45,6 @@ class RememberMeServiceProviderTest extends WebTestCase
         $this->assertTrue($interactiveLogin->triggered, 'The interactive login has been triggered');
 
         $this->assertNotNull($client->getCookiejar()->get('REMEMBERME'), 'The REMEMBERME cookie is set');
-        $event = false;
 
         $client->getCookiejar()->expire('MOCKSESSID');
 
@@ -57,39 +58,43 @@ class RememberMeServiceProviderTest extends WebTestCase
         $this->assertNull($client->getCookiejar()->get('REMEMBERME'), 'The REMEMBERME cookie has been removed');
     }
 
-    public function createApplication($authenticationMethod = 'form')
+    public function createApplication($authenticationMethod = 'form'): HttpKernelInterface
     {
-        $app = new Application();
+        $app = new Application(['debug' => true]);
 
-        $app['debug'] = true;
         unset($app['exception_handler']);
 
         $app->register(new SessionServiceProvider(), [
             'session.test' => true,
         ]);
-        $app->register(new SecurityServiceProvider());
-        $app->register(new RememberMeServiceProvider());
-
-        $app['security.firewalls'] = [
-            'http-auth' => [
-                'pattern' => '^.*$',
-                'form' => true,
-                'remember_me' => [],
-                'logout' => true,
-                'users' => [
-                    'fabien' => ['ROLE_USER', '$2y$15$lzUNsTegNXvZW3qtfucV0erYBcEqWVeyOmjolB7R1uodsAVJ95vvu'],
+        $app->register(new SecurityServiceProvider(), [
+            'security.firewalls' => [
+                'http-auth' => [
+                    'pattern' => '^.*$',
+                    'form' => true,
+                    'remember_me' => [],
+                    'logout' => true,
+                    'users' => [
+                        'fabien' => ['ROLE_USER', 'foo'],
+                    ],
                 ],
             ],
-        ];
+            'security.default_encoder' => function ($app) {
+                return new PlaintextPasswordEncoder();
+            },
+        ]);
+        $app->register(new RememberMeServiceProvider());
 
         $app->get('/', function () use ($app) {
             if ($app['security.authorization_checker']->isGranted('IS_AUTHENTICATED_FULLY')) {
                 return 'AUTHENTICATED_FULLY';
-            } elseif ($app['security.authorization_checker']->isGranted('IS_AUTHENTICATED_REMEMBERED')) {
-                return 'AUTHENTICATED_REMEMBERED';
-            } else {
-                return 'AUTHENTICATED_ANONYMOUSLY';
             }
+
+            if ($app['security.authorization_checker']->isGranted('IS_AUTHENTICATED_REMEMBERED')) {
+                return 'AUTHENTICATED_REMEMBERED';
+            }
+
+            return 'AUTHENTICATED_ANONYMOUSLY';
         });
 
         return $app;

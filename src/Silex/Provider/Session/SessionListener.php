@@ -12,28 +12,26 @@
 namespace Silex\Provider\Session;
 
 use Pimple\Container;
-use Symfony\Component\HttpKernel\EventListener\SessionListener as BaseSessionListener;
+use Symfony\Component\HttpFoundation\Session\SessionInterface;
 
 /**
  * Sets the session in the request.
  *
  * @author Fabien Potencier <fabien@symfony.com>
  */
-class SessionListener extends BaseSessionListener
+class SessionListener extends \Symfony\Component\HttpKernel\EventListener\SessionListener
 {
-    private $app;
-
-    public function __construct(Container $app)
+    public function __construct(Container $app, bool $debug = false)
     {
-        $this->app = $app;
+        $container = new \Pimple\Psr11\Container($app);
+
+        parent::__construct($container, $debug);
     }
 
-    protected function getSession()
+    protected function getSession(): ?SessionInterface
     {
-        if (!isset($this->app['session'])) {
-            return;
-        }
-
-        return $this->app['session'];
+        return $this->container->has('session')
+            ? $this->container->get('session')
+            : null;
     }
 }

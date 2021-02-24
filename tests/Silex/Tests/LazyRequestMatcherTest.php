@@ -23,7 +23,7 @@ use Silex\Provider\Routing\LazyRequestMatcher;
 class LazyRequestMatcherTest extends TestCase
 {
     /**
-     * @covers \Silex\LazyRequestMatcher::getRequestMatcher
+     * @covers \Silex\Provider\Routing\LazyRequestMatcher::getRequestMatcher
      */
     public function testUserMatcherIsCreatedLazily()
     {
@@ -42,12 +42,11 @@ class LazyRequestMatcherTest extends TestCase
         $this->assertEquals(1, $callCounter);
     }
 
-    /**
-     * @expectedException \LogicException
-     * @expectedExceptionMessage Factory supplied to LazyRequestMatcher must return implementation of Symfony\Component\Routing\RequestMatcherInterface.
-     */
     public function testThatCanInjectRequestMatcherOnly()
     {
+        $this->expectException(\LogicException::class);
+        $this->expectExceptionMessage('Factory supplied to LazyRequestMatcher must return implementation of Symfony\Component\Routing\RequestMatcherInterface.');
+
         $matcher = new LazyRequestMatcher(function () {
             return 'someMatcher';
         });
@@ -57,7 +56,7 @@ class LazyRequestMatcherTest extends TestCase
     }
 
     /**
-     * @covers \Silex\LazyRequestMatcher::matchRequest
+     * @covers \Silex\Provider\Routing\LazyRequestMatcher::matchRequest
      */
     public function testMatchIsProxy()
     {
@@ -66,7 +65,7 @@ class LazyRequestMatcherTest extends TestCase
         $matcher->expects($this->once())
             ->method('matchRequest')
             ->with($request)
-            ->will($this->returnValue('matcherReturnValue'));
+            ->willReturn('matcherReturnValue');
 
         $matcher = new LazyRequestMatcher(function () use ($matcher) {
             return $matcher;
